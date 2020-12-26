@@ -37,21 +37,22 @@ def run_inference(interpreter, image):
 img_dir = os.listdir(detect_path)
 for image_name in img_dir:
   image_path=os.path.join(detect_path, image_name)
-  print('Evaluating:', image_path)
   image = Image.open(image_path)
   image_width, image_height = image.size
   draw = ImageDraw.Draw(image)
   resized_image = image.resize((width, height))
 #  np_image = np.asarray(resized_image)
-  np_image = np.asarray(resized_image,dtype=np.uint8)
+  np_image = np.asarray(resized_image,dtype=np.float32)
+#  np_image = np.array(image).reshape(image_height, image_width, 3).astype(np.uint8)
   input_tensor = np.expand_dims(np_image, axis=0)
   # Run inference
   boxes, classes, scores = run_inference(interpreter, input_tensor)
   # Draw results on image
   colors = {0:(128, 255, 102), 1:(102, 255, 255)}
-  labels = {0:'abyssian cat', 1:'american bulldog'}
+  labels = {0:'bee', 1:'bee'}
+  detect_number = 0
   for i in range(len(boxes)):
-    if scores[i] > .7:
+    if scores[i] > .3:
       ymin = int(max(1, (boxes[i][0] * image_height)))
       xmin = int(max(1, (boxes[i][1] * image_width)))
       ymax = int(min(image_height, (boxes[i][2] * image_height)))
@@ -60,7 +61,9 @@ for image_name in img_dir:
       draw.rectangle((xmin, ymin, xmax, ymin-10), fill=colors[int(classes[i])])
       text = labels[int(classes[i])] + ' ' + str(scores[i]*100) + '%'
       draw.text((xmin+2, ymin-10), text, fill=(0,0,0), width=2)
+      detect_number += 1
 
 #  display(image)
+  print('Evaluating: %s , there are %d object detected.' % (image_path, detect_number) )
   image.save(save_path + '/' + image_name)
   image.show()
