@@ -11,6 +11,7 @@ from PIL import ImageDraw
 #%matplotlib inline
 
 detect_path='./test_img'
+save_path='./saved_detect'
 # Creates tflite interpreter
 interpreter = Interpreter('./model.tflite')
 # This exact code can be used to run inference on the edgetpu by simply creating 
@@ -59,5 +60,7 @@ for image_name in img_dir:
       draw.rectangle((xmin, ymin, xmax, ymin-10), fill=colors[int(classes[i])])
       text = labels[int(classes[i])] + ' ' + str(scores[i]*100) + '%'
       draw.text((xmin+2, ymin-10), text, fill=(0,0,0), width=2)
+
 #  display(image)
+  image.save(save_path + '/' + image_name)
   image.show()
