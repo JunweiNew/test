@@ -1,28 +1,25 @@
-# Install tflite_runtime package to evaluate the model.
 #!pip3 install https://dl.google.com/coral/python/tflite_runtime-2.1.0.post1-cp36-cp36m-linux_x86_64.whl
 
-# Now we do evaluation on the tflite model.
 import os
 import numpy as np
 from tflite_runtime.interpreter import Interpreter
 from tflite_runtime.interpreter import load_delegate
 from PIL import Image
 from PIL import ImageDraw
-#%matplotlib inline
 
 detect_path='./test_img'
 save_path='./saved_detect'
-# Creates tflite interpreter
 #interpreter = Interpreter('./model_float32.tflite')
-# This exact code can be used to run inference on the edgetpu by simply creating 
-# the instantialize the interpreter with libedgetpu delegates:
 interpreter = Interpreter('./model_float32.tflite', experimental_delegates=[load_delegate('libedgetpu.so.1.0')])
 interpreter.allocate_tensors()
 interpreter.invoke() # warmup
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
+#print("input_details:", str(input_details))
+#print("output_details:", str(output_details))
 width = input_details[0]['shape'][2]
 height = input_details[0]['shape'][1]
+
 
 def run_inference(interpreter, image):
   interpreter.set_tensor(input_details[0]['index'], image)
@@ -33,7 +30,7 @@ def run_inference(interpreter, image):
   # num_detections = interpreter.get_tensor(output_details[3]['index'])[0]
   return boxes, classes, scores
 
-#test_image_paths = [os.path.join('./test_img', 'image{}.jpg'.format(i)) for i in range(1, 6)]
+
 img_dir = os.listdir(detect_path)
 for image_name in img_dir:
   image_path=os.path.join(detect_path, image_name)
@@ -41,17 +38,15 @@ for image_name in img_dir:
   image_width, image_height = image.size
   draw = ImageDraw.Draw(image)
   resized_image = image.resize((width, height))
-#  np_image = np.asarray(resized_image)
   np_image = np.asarray(resized_image,dtype=np.float32)
-  
+
+  #quantization -1 to 1
   np_image=(2.0 / 255.0) * np_image - 1.0
-#  np_image = np.array(image).reshape(image_height, image_width, 3).astype(np.uint8)
+
   input_tensor = np.expand_dims(np_image, axis=0)
-  # Run inference
   boxes, classes, scores = run_inference(interpreter, input_tensor)
-  # Draw results on image
   colors = {0:(128, 255, 102), 1:(102, 255, 255)}
-  labels = {0:'bee', 1:'bee'}
+  labels = {0:'bee'}
   detect_number = 0
   for i in range(len(boxes)):
     if scores[i] > .6:
@@ -65,7 +60,8 @@ for image_name in img_dir:
       draw.text((xmin+2, ymin-10), text, fill=(0,0,0), width=2)
       detect_number += 1
 
-#  display(image)
+
   print('Evaluating: %s , %d object detected.' % (image_path, detect_number) )
   image.save(save_path + '/' + image_name)
-#  image.show()
+
+
